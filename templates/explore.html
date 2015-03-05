@@ -1,0 +1,40 @@
+{% extends "template.html" %}
+{% block body %}
+
+<body background="static/Grey-White-Wallpaper-29.jpg">
+	<center>
+    <div class = "container">
+    <h1>Artists</h1>
+      <div class = "row">
+      	{% for post in posts %}
+      		<div class = "col-md-6">
+      			<h3>{{ post.name }}<h3><br>
+            <p>{{ post.issuing_public_address }}</p><br>
+            <img src= {{ post.image }} alt="color qrcode"><br>
+            <form class="form-horizontal" action="" method="post">
+                <p><input type="hidden" placeholder="From Public Address" name="from_public_address" value={{ post.issuing_public_address }}></p>
+                <p><input type="number" placeholder="Number of Tickets" name="transfer_amount" value="{{request.form.transfer_amount}}"></p>
+                <p><input type="hidden" placeholder="Issuing Address" name="issuing_public_address" value={{ post.issuing_public_address }}></p>
+                <p><input class="btn btn-custom" type="submit" value="Buy"></p>
+            </form>
+          </div>
+          {% if error %}
+            <p class="error"><strong>Error:</strong> {{ error }}</p>
+          {% endif %}
+		    {% endfor %}
+      </div>
+    </div>
+  </center>
+</body>
+
+{% endblock %}
+
+
+curl https://coins.assembly.com/v1/transactions/transfer -H "Content-Type: application/json" -X POST -d '{
+  "from_public_address": "1LDq9Dt1GZQXWyQVY17445bqKT2zPHUF9r",
+  "from_private_key": "5HrB16MVycTgyGH7vfXtFjZdFxYShzHVvsefGxjY8fv9CZvBVeu",
+  "transfer_amount": 1,
+  "to_public_address": "1HLRn8Gac2oQgdLLJFdBhiGoWkjDuonYaK",
+  "issuing_address": "1LDq9Dt1GZQXWyQVY17445bqKT2zPHUF9r",
+  "fee_each": 5e-05
+  }'

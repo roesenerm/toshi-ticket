@@ -1,0 +1,25 @@
+{% extends "template.html" %}
+{% block body %}
+<body background="static/Grey-White-Wallpaper-29.jpg">
+  <center>
+    <div class = "container">
+    <h1>My Tickets</h1>
+      <div class = "row">
+        {% for asset in my_assets %}
+            <div class = "col-md-6">
+                <h3>Issuing Address: {{ asset.issuing_address }}</h3>
+                <h3>Color Name: {{ asset.color_name }}</h3>
+                <h3>Color Address: {{ asset.color_address }}<h3><br>
+                <p>Number of Tickets: {{ asset.quantity }}</p><br>
+          <br>
+          {% if error %}
+            <p class="error"><strong>Error:</strong> {{ error }}</p>
+          {% endif %}
+          </div>
+            {% endfor %}
+      </div>
+    </div>
+  </center>
+</body>
+
+{% endblock %}

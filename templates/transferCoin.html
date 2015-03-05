@@ -1,0 +1,22 @@
+{% extends "template.html" %}
+{% block body %}
+
+<body background="static/Grey-White-Wallpaper-29.jpg">
+	<div class="container">
+		<h1>Transfer Tickets</h1>
+		<br>
+		<form action="" method="post">
+			<p><input type="text" placeholder="From Public Address" name="from_public_address" value="{{request.form.from_public_address}}"></p>
+			<p><input type="text" placeholder="Private Key" name="from_private_key" value="{{request.form.from_private_key}}"></p>
+			<p><input type="text" placeholder="Transfer Amount" name="transfer_amount" value="{{request.form.transfer_amount}}"></p>
+			<p><input type="text" placeholder="To Public Address" name="to_public_address" value="{{request.form.to_public_address}}"></p>
+			<p><input type="text" placeholder="Issuing Address" name="issuing_address" value="{{request.form.issuing_address}}"></p>
+			<p><input class="btn btn-custom" type="submit" value="Transfer"></p>
+		</form>
+		{% if error %}
+			<p class="error"><strong>Error:</strong> {{ error }}</p>
+		{% endif %}
+	</div>
+</body>
+
+{% endblock %}
