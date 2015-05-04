@@ -4,19 +4,21 @@
   <center>
     <div class = "container">
     <h1>My Tickets</h1>
+    <br>
       <div class = "row">
         {% for asset in my_assets %}
             <div class = "col-md-6">
-                <h3>Issuing Address: {{ asset.issuing_address }}</h3>
-                <h3>Color Name: {{ asset.color_name }}</h3>
-                <h3>Color Address: {{ asset.color_address }}<h3><br>
-                <p>Number of Tickets: {{ asset.quantity }}</p><br>
-          <br>
-          {% if error %}
-            <p class="error"><strong>Error:</strong> {{ error }}</p>
-          {% endif %}
-          </div>
-            {% endfor %}
+                <div class="list-group">
+                  <a href="#" class="list-group-item"><h3>Issuing Address: {{ asset.issuing_address }}</h3></a>
+                  <a href="#" class="list-group-item"><h3>Color Name: {{ asset.color_name }}</h3></a>
+                  <a href="#" class="list-group-item"><h3>Color Address: {{ asset.color_address }}<h3></a>
+                  <a href="#" class="list-group-item"><h3>Number of Tickets: {{ asset.quantity }}</h3></a>
+                </div>
+              {% if error %}
+              <p class="error"><strong>Error:</strong> {{ error }}</p>
+              {% endif %}
+            </div>
+        {% endfor %}
       </div>
     </div>
   </center>

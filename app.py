@@ -34,12 +34,22 @@ def login_required(f):
 			return redirect(url_for('login'))
 	return wrap
 
-@app.route('/oauthlogin')
-def register_me():
-
+#Login Page
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+	error = None
 	auth_url = 'https://www.coinbase.com/oauth/authorize?response_type=code&client_id='+ CLIENT_ID +'&redirect_uri='+ YOUR_CALLBACK_URL
 
-	return render_template('register.jinja2', auth_url=auth_url)
+	return render_template('login.html', error=error, auth_url=auth_url)
+
+#Logout
+@app.route('/logout')
+@login_required
+def logout():
+	session.pop('logged_in', None)
+	flash('You were just logged out!')
+	return redirect(url_for('login'))
+
 
 @app.route('/consumer_auth')
 def recieve_token():
@@ -79,19 +89,30 @@ def recieve_token():
 def home():
 	auth_url = 'https://www.coinbase.com/oauth/authorize?response_type=code&client_id='+ CLIENT_ID +'&redirect_uri='+ YOUR_CALLBACK_URL
 
-	return render_template("cover2.html", auth_url=auth_url)
+	return render_template("cover.html", auth_url=auth_url)
 
-#Welcome Page
-@app.route('/welcome')
-@login_required
-def welcome():
-	return render_template("welcome.html")
 
 @app.route('/explore', methods=['GET', 'POST'])
 #@login_required
 def explore():
 
 	posts = db.posts.find()
+
+	for post in posts:
+		try:
+			#print "yes"
+			#print post['issuing_public_address']
+			issuing_address = post['issuing_public_address']
+			ticket_price = statements(issuing_address)
+			print ticket_price
+			print post
+			db.posts.find_and_modify(query={'issuing_public_address':issuing_address}, update={"$set": {'ticket_price': ticket_price}}, upsert=False, full_response= True)
+		except:
+			print "pass"
+			pass
+
+	posts = db.posts.find()
+
 
 	lastToken = tokens.find().sort([("created_at", pymongo.DESCENDING)])
 	token = lastToken.next()['token']
@@ -125,7 +146,7 @@ def explore():
 		print "json"
 		print json.dumps(payload)
 
-		r = requests.post('https://coins.assembly.com/v1/transactions/transfer', data=json.dumps(payload), headers=headers)
+		r = requests.post('https://assets.assembly.com/v1/transactions/transfer', data=json.dumps(payload), headers=headers)
 
 		print r.status_code
 
@@ -134,22 +155,6 @@ def explore():
 
 	return render_template("explore.html", posts=posts)
 
-
-#Login Page
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-	error = None
-	auth_url = 'https://www.coinbase.com/oauth/authorize?response_type=code&client_id='+ CLIENT_ID +'&redirect_uri='+ YOUR_CALLBACK_URL
-
-	return render_template('login.html', error=error, auth_url=auth_url)
-
-#Logout
-@app.route('/logout')
-@login_required
-def logout():
-	session.pop('logged_in', None)
-	flash('You were just logged out!')
-	return redirect(url_for('login'))
 
 #Profile Page
 @app.route('/profile', methods=['GET', 'POST'])
@@ -171,7 +176,7 @@ def profile():
 
 	print my_address
 
-	r = requests.get('https://coins.assembly.com/v1/addresses/' + my_address)
+	r = requests.get('https://assets.assembly.com/v1/addresses/' + my_address)
 
 	response = r.json()
 	my_assets = response['assets']
@@ -187,11 +192,20 @@ def issueCoin():
 	error = None
 	if request.method == 'POST':
 		headers = {'Content-Type':'application/json'}
-		payload = {'issued_amount': request.form['issuedamount'], 'description': request.form['description'], 'coin_name': request.form['coin_name'], 'email': request.form['email']}
+		issued_amount = request.form['issued_amount']
+		description = request.form['description']
+		image = request.form['image']
+		ticket_price = request.form['ticket_price']
+		coin_name = request.form['coin_name']
+		email = request.form['email']
+
+		meta_data = description + "++" + image + "++" + ticket_price
+
+		payload = {'issued_amount': issued_amount, 'description': meta_data, 'coin_name': coin_name, 'email': email}
 
 		print payload
 
-		r = requests.post('https://coins.assembly.com/v1/colors/prepare', data=json.dumps(payload), headers=headers)
+		r = requests.post('https://assets.assembly.com/v1/colors/prepare', data=json.dumps(payload), headers=headers)
 
 		print r.status_code
 
@@ -202,87 +216,17 @@ def issueCoin():
 		minting_fee = 0.002
 		issuing_public_address = issuance['issuing_public_address']
 
-		# message payload
-		'''
-		message_payload = {'public_address':issuing_public_address, 'fee_each':minting_fee, 'private_key':issuing_private_key, 'message': request.form['ticketprice']}
-		message = requests.post('https://coins.assembly.com/v1/messages', data=json.dumps(message_payload),headers=headers)
-
-		print message.status_code
-		'''
-		#message payload
-
-		qrcode = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" + issuing_public_address
-
-		image = request.form['image']
-
 		lastToken = tokens.find().sort([("created_at", pymongo.DESCENDING)])
 		token = lastToken.next()['token']
 
 		sendBitcoin(issuing_public_address, minting_fee, token)
 
-		posts.insert({'issuing_public_address': issuing_public_address, 'issuing_private_key': issuing_private_key, 'name': name, 'qrcode': qrcode, 'image': image})
+		posts.insert({'issuing_public_address': issuing_public_address, 'issuing_private_key': issuing_private_key, 'name': name})
 
-		return render_template("issuance.html", issuing_private_key=issuing_private_key, name=name, minting_fee=minting_fee, issuing_public_address=issuing_public_address, qrcode=qrcode, image=image)
+		return render_template("issuance.html", issuing_private_key=issuing_private_key, name=name, minting_fee=minting_fee, issuing_public_address=issuing_public_address)
 
 	return render_template("issuecoin.html")
 
-# Transfer coins to different account
-@app.route('/transfercoin', methods=['GET', 'POST'])
-@login_required
-def transferCoin():
-	error = None
-	if request.method == 'POST':
-		headers = {'Content-Type':'application/json'}
-		payload = {'from_public_address': request.form['from_public_address'], 'from_private_key': request.form['from_private_key'], 'transfer_amount': request.form['transfer_amount'], 'to_public_address': request.form['to_public_address'], 'issuing_address': request.form['issuing_address'], 'fee_each': 5e-05}
-
-		r = requests.post('https://coins.assembly.com/v1/transactions/transfer', data=json.dumps(payload), headers=headers)
-
-		return jsonify(r.json())
-
-	return render_template("transfercoin.html")
-
-def buyTicket(from_public_address, from_private_key, issuing_public_address):
-	error = None
-
-	#tokens = TokenPosts.query.all()
-	#token = str(tokens[-1])
-
-	uri = 'https://api.coinbase.com/v1/addresses?access_token=' + token
-
-	r = requests.get(uri)
-
-	addresses = r.json()
-
-	to_public_address = addresses[0]
-
-	if request.method == 'POST':
-		headers = {'Content-Type':'application/json'}
-		payload = {'from_public_address': from_public_address, 'from_private_key': from_private_key, 'transfer_amount': request.form['transfer_amount'], 'to_public_address': to_public_address, 'issuing_address': issuing_address, 'fee_each': 5e-05}
-
-		r = requests.post('https://coins.assembly.com/v1/transactions/transfer', data=json.dumps(payload), headers=headers)
-
-		return jsonify(r.json())
-		#return render_template("buyconfirmation.html")
-
-def sellTicket():
-	pass
-
-def sendBitcoin(issuing_public_address, minting_fee, token):
-
-	error = None
-	if request.method == 'POST':
-		headers = {'Content-Type':'application/json'}
-		payload = {'transaction': {'to': issuing_public_address,
-			'amount': minting_fee,
-			'notes': 'Official ticket issuance with minting fee',
-			'user_fee': 0.0002
-		}}
-
-	r = requests.post('https://api.coinbase.com/v1/transactions/send_money?access_token='+ token, data=json.dumps(payload), headers=headers)
-
-	print r.json()
-
-	print "sent"
 
 # Check coin balance
 @app.route('/checkcoin', methods=['GET', 'POST'])
@@ -295,7 +239,7 @@ def checkCoin():
 
 		print public_address
 
-		r = requests.get('https://coins.assembly.com/v1/addresses/' + public_address)
+		r = requests.get('https://assets.assembly.com/v1/addresses/' + public_address)
 
 		response = r.json()
 
@@ -319,22 +263,43 @@ def artist():
 
 	return render_template('artist.html', posts=posts)
 
+def statements(public_address):
 
-# Graph example
-@app.route('/graph')
-@login_required
-def graph(chartID = 'chart_ID', chart_type = 'line', chart_height = 500):
-    chart = {"renderTo": chartID, "type": chart_type, "height": chart_height,}
-    series = [{"name": 'Coin1', "data": [1,2,3]}, {"name": 'Coin2', "data": [4, 5, 6]}]
-    pageType = 'graph'
-    title = {"text": 'Coin Price'}
-    xAxis = {"categories": ['xAxis Data1', 'xAxis Data2', 'xAxis Data3']}
-    yAxis = {"title": {"text": 'Price'}}
-    return render_template('graph.html', pageType=pageType, chartID=chartID, chart=chart, series=series, title=title, xAxis=xAxis, yAxis=yAxis)
+	r = requests.get('http://assets.assembly.com/v1/messages/'+public_address)
 
-@app.route('/graph2')
-def graph2():
-	return render_template('graph2.html')
+	print r.status_code
+
+	json = r.json()
+
+	statements = json['statements'].split(",")
+
+	description = statements[1].split(":")[1]
+
+	ticket_type = description.split("++")[0]
+
+	image = description.split("++")[1]
+
+	ticket_price = description.split("++")[2]
+
+	return ticket_price
+
+
+def sendBitcoin(issuing_public_address, minting_fee, token):
+
+	error = None
+	if request.method == 'POST':
+		headers = {'Content-Type':'application/json'}
+		payload = {'transaction': {'to': issuing_public_address,
+			'amount': minting_fee,
+			'notes': 'Official ticket issuance with minting fee',
+			'user_fee': 0.0002
+		}}
+
+	r = requests.post('https://api.coinbase.com/v1/transactions/send_money?access_token='+ token, data=json.dumps(payload), headers=headers)
+
+	print r.json()
+
+	print "sent"
 
 
 if __name__ == '__main__':
