@@ -1,23 +1,34 @@
 from flask import Flask, render_template, redirect, url_for, request, jsonify, make_response, session, flash
-from flask.ext.pymongo import PyMongo
+#from flask.ext.pymongo import PyMongo
 import pymongo
 from pymongo import Connection
+from pymongo import MongoClient
 from functools import *
 import json
 import requests
 from urllib2 import Request, urlopen
 from time import gmtime, strftime
 
+#mongo = PyMongo(app)
+#conn = Connection()
+#conn = MongoClient('localhost', 27017)
+#db = conn.dbZero
+
+def connect():
+	connection = MongoClient('ds031872.mongolab.com', 31872)
+	#print connection
+	handle = connection["dbzero"]
+	#print handle
+	handle.authenticate('matthewroesener','namoku8807')
+	return handle
 
 app = Flask(__name__)
 app.secret_key = "temp secret"
-mongo = PyMongo(app)
 
-conn = Connection()
-db = conn.dbZero
+handle = connect()
 
-tokens = db.tokens
-posts = db.posts
+tokens = handle.tokens
+posts = handle.posts
 
 
 CLIENT_ID = '40335456568a0fd8a01e934b18b83df11a58b0cf1bb7adfaa4dfeb57e247652e'
