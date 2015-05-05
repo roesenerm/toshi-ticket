@@ -1,13 +1,14 @@
 from flask import Flask, render_template, redirect, url_for, request, jsonify, make_response, session, flash
 #from flask.ext.pymongo import PyMongo
 import pymongo
-from pymongo import Connection
+#from pymongo import Connection
 from pymongo import MongoClient
 from functools import *
 import json
 import requests
 from urllib2 import Request, urlopen
 from time import gmtime, strftime
+import os
 
 #mongo = PyMongo(app)
 #conn = Connection()
